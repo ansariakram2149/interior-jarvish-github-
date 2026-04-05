@@ -83,6 +83,7 @@ export default function InteriorJarvis() {
   const getApiKey = async () => {
     // Try to get key from various sources in order of priority
     let key = "";
+    let backendError = "";
     
     // 1. Check window.API_KEY (Platform runtime injection)
     key = (window as any).API_KEY || (window as any).GEMINI_API_KEY;
@@ -98,22 +99,22 @@ export default function InteriorJarvis() {
             key = data.apiKey;
             console.log("API Key successfully fetched from backend.");
           } else {
-            console.warn("Backend returned success but no apiKey field found.");
+            backendError = "Backend returned success but no apiKey field found.";
           }
         } else {
-          console.error("Backend config fetch failed with status:", response.status);
-          // Log the error body if possible
           try {
             const errorData = await response.json();
-            console.error("Error details:", errorData);
-          } catch (e) {}
+            backendError = errorData.error || `Status: ${response.status}`;
+          } catch (e) {
+            backendError = `Status: ${response.status}`;
+          }
         }
       } catch (e) {
-        console.error("Error fetching backend config:", e);
+        backendError = e instanceof Error ? e.message : "Network error";
       }
     }
     
-    // 3. Check process.env (Vite build-time define or platform injection)
+    // 3. Fallbacks
     if (!key || key === "MY_GEMINI_API_KEY" || key === "") {
       try {
         // @ts-ignore
@@ -121,7 +122,6 @@ export default function InteriorJarvis() {
       } catch (e) {}
     }
     
-    // 4. Check import.meta.env (Vite standard)
     if (!key || key === "MY_GEMINI_API_KEY" || key === "") {
       const metaEnv = (import.meta as any).env;
       if (metaEnv) {
@@ -129,7 +129,7 @@ export default function InteriorJarvis() {
       }
     }
     
-    return key || "";
+    return { key: key || "", error: backendError };
   };
 
   const startSession = async () => {
@@ -140,26 +140,29 @@ export default function InteriorJarvis() {
     const micPromise = startMic();
     
     try {
-      let apiKey = await getApiKey();
+      const { key: apiKey, error: fetchError } = await getApiKey();
+      let finalKey = apiKey;
       
       // If we have a placeholder or no key, try to open the key selector
-      if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
+      if (!finalKey || finalKey === "MY_GEMINI_API_KEY") {
         await checkApiKey();
-        // After checkApiKey, the platform should have injected the key
-        apiKey = await getApiKey();
+        const { key: retryKey } = await getApiKey();
+        finalKey = retryKey;
       }
       
       // Final check - if still no key, throw a more descriptive error
-      if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey === "") {
+      if (!finalKey || finalKey === "MY_GEMINI_API_KEY" || finalKey === "") {
         const hostname = window.location.hostname;
         const isPublished = hostname.includes('run.app') || hostname.includes('vercel.app') || (hostname !== 'localhost' && hostname !== '127.0.0.1');
         const hasAiStudio = !!(window as any).aistudio;
         
         if (isPublished && !hasAiStudio) {
           throw new Error(`API Key Missing! 
+          Backend Error: ${fetchError || "Unknown"}
+          
           1. Vercel Dashboard mein 'GEMINI_API_KEY' check karein.
           2. Variable add karne ke baad 'Redeploy' zaroor karein.
-          3. Agar aapne .env file use ki hai, toh wo Vercel par kaam nahi karegi, wahan Settings mein add karna hoga.`);
+          3. Agar aapne .env file use ki hai, toh wo Vercel par kaam nahi karegi.`);
         } else if (hasAiStudio) {
           throw new Error("Please select an API key to start the conversation.");
         } else {
@@ -167,7 +170,7 @@ export default function InteriorJarvis() {
         }
       }
 
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = new GoogleGenAI({ apiKey: finalKey });
       
       const session = await ai.live.connect({
         model: "gemini-3.1-flash-live-preview",

@@ -4,10 +4,10 @@ export default function handler(
   request: VercelRequest,
   response: VercelResponse,
 ) {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.VITE_API_KEY;
   
   // Security: Only send key if it's not a placeholder
-  if (apiKey && apiKey !== "MY_GEMINI_API_KEY") {
+  if (apiKey && apiKey !== "MY_GEMINI_API_KEY" && apiKey !== "") {
     // Optional: Check Referer header here to restrict to your domain
     // const referer = request.headers.referer;
     // if (referer && !referer.includes('yourwebsite.com')) {
