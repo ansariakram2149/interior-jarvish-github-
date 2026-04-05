@@ -91,10 +91,17 @@ export default function InteriorJarvis() {
     if (!key || key === "MY_GEMINI_API_KEY" || key === "") {
       try {
         const response = await fetch("/api/config");
-        const data = await response.json();
-        if (data.apiKey) key = data.apiKey;
+        if (response.ok) {
+          const data = await response.json();
+          if (data.apiKey) {
+            key = data.apiKey;
+            console.log("API Key successfully fetched from backend.");
+          }
+        } else {
+          console.error("Backend config fetch failed with status:", response.status);
+        }
       } catch (e) {
-        console.log("Backend config not available, falling back to env...");
+        console.error("Error fetching backend config:", e);
       }
     }
     
@@ -140,7 +147,7 @@ export default function InteriorJarvis() {
         const hasAiStudio = !!(window as any).aistudio;
         
         if (isPublished && !hasAiStudio) {
-          throw new Error("API Key not found. Mobile par use karne ke liye please 'Shared App URL' (jo ais-pre- se start hota hai) ka use karein. Direct link par API key support nahi hoti.");
+          throw new Error("API Key is missing. Agar aap Vercel par hain, toh check karein ki 'GEMINI_API_KEY' Environment Variable set kiya hai ya nahi. Variable add karne ke baad 'Redeploy' karna zaroori hai.");
         } else if (hasAiStudio) {
           throw new Error("Please select an API key to start the conversation.");
         } else {
