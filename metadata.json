@@ -1,0 +1,5 @@
+{
+  "name": "Interior Jarvis - Indian Interior Assistant",
+  "description": "A premium Indian female voice assistant for interior design, budget planning, and space planning.",
+  "requestFramePermissions": ["microphone"]
+}
