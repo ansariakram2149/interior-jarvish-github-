@@ -90,15 +90,23 @@ export default function InteriorJarvis() {
     // 2. Check backend API (Secure way for custom deployments)
     if (!key || key === "MY_GEMINI_API_KEY" || key === "") {
       try {
+        console.log("Fetching API key from backend...");
         const response = await fetch("/api/config");
         if (response.ok) {
           const data = await response.json();
           if (data.apiKey) {
             key = data.apiKey;
             console.log("API Key successfully fetched from backend.");
+          } else {
+            console.warn("Backend returned success but no apiKey field found.");
           }
         } else {
           console.error("Backend config fetch failed with status:", response.status);
+          // Log the error body if possible
+          try {
+            const errorData = await response.json();
+            console.error("Error details:", errorData);
+          } catch (e) {}
         }
       } catch (e) {
         console.error("Error fetching backend config:", e);
@@ -143,11 +151,15 @@ export default function InteriorJarvis() {
       
       // Final check - if still no key, throw a more descriptive error
       if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey === "") {
-        const isPublished = window.location.hostname.includes('run.app');
+        const hostname = window.location.hostname;
+        const isPublished = hostname.includes('run.app') || hostname.includes('vercel.app') || (hostname !== 'localhost' && hostname !== '127.0.0.1');
         const hasAiStudio = !!(window as any).aistudio;
         
         if (isPublished && !hasAiStudio) {
-          throw new Error("API Key is missing. Agar aap Vercel par hain, toh check karein ki 'GEMINI_API_KEY' Environment Variable set kiya hai ya nahi. Variable add karne ke baad 'Redeploy' karna zaroori hai.");
+          throw new Error(`API Key Missing! 
+          1. Vercel Dashboard mein 'GEMINI_API_KEY' check karein.
+          2. Variable add karne ke baad 'Redeploy' zaroor karein.
+          3. Agar aapne .env file use ki hai, toh wo Vercel par kaam nahi karegi, wahan Settings mein add karna hoga.`);
         } else if (hasAiStudio) {
           throw new Error("Please select an API key to start the conversation.");
         } else {
