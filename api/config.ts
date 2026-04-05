@@ -6,6 +6,9 @@ export default function handler(
 ) {
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.VITE_API_KEY;
   
+  console.log("API Key Check - GEMINI_API_KEY exists:", !!process.env.GEMINI_API_KEY);
+  console.log("API Key Check - API_KEY exists:", !!process.env.API_KEY);
+  
   // Security: Only send key if it's not a placeholder
   if (apiKey && apiKey !== "MY_GEMINI_API_KEY" && apiKey !== "") {
     // Optional: Check Referer header here to restrict to your domain
