@@ -22,7 +22,8 @@ Flow:
 9. Provide detailed advice based on all inputs.
 10. CTA: "Agar aap hamare verified interior designer se complete guidance chahte hain, to reply kare Yes or No."
 
-If "Yes": "Book Now button click karein."
+If user says "Yes": Show "Book Now" button and terminate conversation.
+If user says "No": Terminate conversation politely.
 
 // • Carpet Area Validation:
 // If the user provides an unrealistic carpet area for the selected space type, do not proceed.
@@ -244,9 +245,8 @@ export default function InteriorJarvis() {
                   const text = textPart.text.toLowerCase();
                   setAiResponse(prev => prev + " " + textPart.text);
                   
-                  if (text.includes("yes") || text.includes("book now") || text.includes("button") || text.includes("theek hai")) {
-                    setShowBookNow(true);
-                  }
+                  // If the model is asking for CTA and user says yes/no, it should be handled in inputTranscription.
+                  // But if the model itself says something that triggers this, we handle it here.
                 }
               }
 
@@ -260,8 +260,16 @@ export default function InteriorJarvis() {
                 setTranscript(message.serverContent.inputTranscription.text);
                 
                 if (input.includes("yes") || input.includes("haan") || input.includes("theek hai")) {
-                  // Pre-emptively show button if user says yes
                   setShowBookNow(true);
+                  if (sessionRef.current) {
+                    sessionRef.current.close();
+                    setIsActive(false);
+                  }
+                } else if (input.includes("no") || input.includes("nahi")) {
+                  if (sessionRef.current) {
+                    sessionRef.current.close();
+                    setIsActive(false);
+                  }
                 }
               }
             },
@@ -340,6 +348,7 @@ export default function InteriorJarvis() {
       processor.connect(audioContext.destination);
     } catch (error) {
       console.error("Mic access denied:", error);
+      setError("Microphone access denied. Please allow microphone permissions to start the conversation.");
     }
   };
 
