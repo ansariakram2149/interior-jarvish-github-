@@ -280,8 +280,10 @@ export default function InteriorJarvis() {
   const startMic = async () => {
     try {
       // Create AudioContext synchronously to avoid suspension
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+      // Use default sample rate for hardware compatibility, then resample if needed
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       audioContextRef.current = audioContext;
+      
       if (audioContext.state === 'suspended') {
         await audioContext.resume();
       }
@@ -290,13 +292,28 @@ export default function InteriorJarvis() {
       streamRef.current = stream;
       
       const source = audioContext.createMediaStreamSource(stream);
+      // We still need 16000 for Gemini input, but we'll let ScriptProcessor handle it or just send what we have
       const processor = audioContext.createScriptProcessor(2048, 1, 1);
       processorRef.current = processor;
 
       processor.onaudioprocess = (e) => {
         if (isMuted) return;
         const inputData = e.inputBuffer.getChannelData(0);
-        const pcmBuffer = floatTo16BitPCM(inputData);
+        
+        // Simple downsampling if context rate is not 16000
+        let processedData = inputData;
+        if (audioContext.sampleRate !== 16000) {
+          // Very basic downsampling (skip samples) - not high quality but fast
+          const ratio = audioContext.sampleRate / 16000;
+          const newLength = Math.round(inputData.length / ratio);
+          const result = new Float32Array(newLength);
+          for (let i = 0; i < newLength; i++) {
+            result[i] = inputData[Math.round(i * ratio)];
+          }
+          processedData = result;
+        }
+
+        const pcmBuffer = floatTo16BitPCM(processedData);
         
         // Faster base64 conversion
         const base64Data = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(pcmBuffer))));
@@ -327,11 +344,16 @@ export default function InteriorJarvis() {
       return;
     }
 
+    if (!audioContextRef.current) return;
+
+    // Mobile fix: Always try to resume context before playing
+    if (audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
+
     isPlayingRef.current = true;
     const pcmData = audioQueueRef.current.shift()!;
     
-    if (!audioContextRef.current) return;
-
     const audioBuffer = audioContextRef.current.createBuffer(1, pcmData.length, 24000);
     const channelData = audioBuffer.getChannelData(0);
     for (let i = 0; i < pcmData.length; i++) {
