@@ -22,7 +22,7 @@ Flow:
 9. Provide detailed advice based on all inputs.
 10. CTA: "Agar aap hamare verified interior designer se complete guidance chahte hain, to reply kare Yes or No."
 
-If user says "Yes": Show "Book Now" button and terminate conversation.
+If user says "Yes", say: "Thik hai sir, main niche Book Now button show kara rahi hoon, aap form fill karein."
 If user says "No": Terminate conversation politely.
 
 // • Carpet Area Validation:
@@ -75,20 +75,6 @@ export default function InteriorJarvis() {
       }
     });
   }, []);
-
-  // Auto-close session after showing the Book Now button to save budget
-  useEffect(() => {
-    if (showBookNow && isActive) {
-      const timer = setTimeout(() => {
-        if (sessionRef.current) {
-          sessionRef.current.close();
-          setIsActive(false);
-          console.log("Session auto-closed to save budget after showing form.");
-        }
-      }, 6000); // 6 seconds delay to allow the agent to finish the final sentence
-      return () => clearTimeout(timer);
-    }
-  }, [showBookNow, isActive]);
 
   const checkApiKey = async () => {
     // @ts-ignore
@@ -260,11 +246,15 @@ export default function InteriorJarvis() {
                 setTranscript(message.serverContent.inputTranscription.text);
                 
                 if (input.includes("yes") || input.includes("haan") || input.includes("theek hai")) {
+                  // Pre-emptively show button if user says yes
                   setShowBookNow(true);
-                  if (sessionRef.current) {
-                    sessionRef.current.close();
-                    setIsActive(false);
-                  }
+                  // Delay closing to allow model to speak the instruction
+                  setTimeout(() => {
+                    if (sessionRef.current) {
+                      sessionRef.current.close();
+                      setIsActive(false);
+                    }
+                  }, 4000);
                 } else if (input.includes("no") || input.includes("nahi")) {
                   if (sessionRef.current) {
                     sessionRef.current.close();
