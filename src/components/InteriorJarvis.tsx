@@ -22,7 +22,7 @@ You MUST follow this step-by-step flow:
 7. Then ask for the city: "Aap kaunse city se hain? (Budget planning ke liye zaroori hai)."
 8. Provide detailed answers based on their inputs.
 9. CTA: Finally, ask: "Agar aap hamare verified interior designer se complete guidance chahte hain, to reply kare Yes or No."
-10. If they say "Yes", tell them: "Theek hai, main aapke liye 'Book Now' button show kar rahi hoon. Aap wahan click karke enquiry form bhar sakte hain."
+10. If they say "Yes", tell them: "Theek hai, main aapke liye 'Book Now' button show kar rahi hoon. Aap wahan click karke enquiry form bhar sakte hain. Have a great day!"
 
 --- INPUT VALIDATION RULES ---
 
@@ -77,6 +77,20 @@ export default function InteriorJarvis() {
       }
     });
   }, []);
+
+  // Auto-close session after showing the Book Now button to save budget
+  useEffect(() => {
+    if (showBookNow && isActive) {
+      const timer = setTimeout(() => {
+        if (sessionRef.current) {
+          sessionRef.current.close();
+          setIsActive(false);
+          console.log("Session auto-closed to save budget after showing form.");
+        }
+      }, 6000); // 6 seconds delay to allow the agent to finish the final sentence
+      return () => clearTimeout(timer);
+    }
+  }, [showBookNow, isActive]);
 
   const checkApiKey = async () => {
     // @ts-ignore
