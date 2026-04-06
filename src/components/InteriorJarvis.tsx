@@ -9,6 +9,8 @@ Speak in a natural Indian English accent (Hinglish/Indian English).
 Tone: warm, polite, professional, smooth.
 Avoid robotic pauses. Speak like a real human conversation.
 
+CRITICAL: Respond IMMEDIATELY after the user finishes speaking. Do not hesitate. Be snappy and responsive.
+
 Your goal is to help clients with interior design related questions.
 You MUST follow this step-by-step flow:
 1. Greet the user warmly. Ask: "Aap kya knowledge chahte hain? Budget planning, space planning, interior ideas, ya kuch aur questions hain?"
@@ -58,6 +60,7 @@ export default function InteriorJarvis() {
   const [showBookNow, setShowBookNow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [cachedApiKey, setCachedApiKey] = useState<string | null>(null);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -65,6 +68,15 @@ export default function InteriorJarvis() {
   const sessionRef = useRef<any>(null);
   const audioQueueRef = useRef<Int16Array[]>([]);
   const isPlayingRef = useRef(false);
+
+  // Pre-fetch API key on mount to speed up connection
+  useEffect(() => {
+    getApiKey().then(({ key }) => {
+      if (key && key !== "MY_GEMINI_API_KEY") {
+        setCachedApiKey(key);
+      }
+    });
+  }, []);
 
   const checkApiKey = async () => {
     // @ts-ignore
@@ -140,14 +152,21 @@ export default function InteriorJarvis() {
     const micPromise = startMic();
     
     try {
-      const { key: apiKey, error: fetchError } = await getApiKey();
-      let finalKey = apiKey;
+      let finalKey = cachedApiKey;
+      let fetchErrorMsg = "";
+      
+      if (!finalKey) {
+        const { key: apiKey, error: fetchError } = await getApiKey();
+        finalKey = apiKey;
+        fetchErrorMsg = fetchError;
+      }
       
       // If we have a placeholder or no key, try to open the key selector
       if (!finalKey || finalKey === "MY_GEMINI_API_KEY") {
         await checkApiKey();
-        const { key: retryKey } = await getApiKey();
+        const { key: retryKey, error: retryError } = await getApiKey();
         finalKey = retryKey;
+        if (!fetchErrorMsg) fetchErrorMsg = retryError;
       }
       
       // Final check - if still no key, throw a more descriptive error
@@ -158,7 +177,7 @@ export default function InteriorJarvis() {
         
         if (isPublished && !hasAiStudio) {
           throw new Error(`API Key Missing! 
-          Backend Error: ${fetchError || "Unknown"}
+          Backend Error: ${fetchErrorMsg || "Unknown"}
           
           1. Vercel Dashboard mein 'GEMINI_API_KEY' check karein.
           2. Variable add karne ke baad 'Redeploy' zaroor karein.
@@ -190,6 +209,13 @@ export default function InteriorJarvis() {
               setIsConnecting(false);
               // Ensure mic is ready
               await micPromise;
+              
+              // Trigger the agent to start speaking the greeting
+              if (sessionRef.current) {
+                sessionRef.current.sendRealtimeInput({
+                  text: "Hello, please start the conversation by greeting me as instructed."
+                });
+              }
             },
             onmessage: async (message: LiveServerMessage) => {
               if (message.serverContent?.modelTurn?.parts) {
@@ -253,21 +279,27 @@ export default function InteriorJarvis() {
 
   const startMic = async () => {
     try {
+      // Create AudioContext synchronously to avoid suspension
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+      audioContextRef.current = audioContext;
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      audioContextRef.current = audioContext;
-      
       const source = audioContext.createMediaStreamSource(stream);
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      const processor = audioContext.createScriptProcessor(2048, 1, 1);
       processorRef.current = processor;
 
       processor.onaudioprocess = (e) => {
         if (isMuted) return;
         const inputData = e.inputBuffer.getChannelData(0);
         const pcmBuffer = floatTo16BitPCM(inputData);
-        const base64Data = btoa(String.fromCharCode(...new Uint8Array(pcmBuffer)));
+        
+        // Faster base64 conversion
+        const base64Data = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(pcmBuffer))));
         
         if (sessionRef.current) {
           sessionRef.current.sendRealtimeInput({
