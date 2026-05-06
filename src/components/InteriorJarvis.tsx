@@ -17,8 +17,9 @@ Flow:
 4. Wait for answer.
 5. Ask City: "Aap kaunse city se hain?"
 6. Wait for answer.
-7. Provide 'standard' budget estimates specific to the city provided.
-   - If the user specifically asks for 'premium', 'luxury', or 'basic' budgets, provide those estimates instead.
+7. Provide realistic, standard market budget estimates specific to the city provided (Ranchi market rates). 
+   - Estimates should be professional and competitive: attractive enough to encourage form filling, but realistic enough to maintain brand quality.
+   - If the user specifically asks for 'premium', 'luxury', or 'basic' budgets, provide professional estimates based on the city corresponding to those levels.
    - Always ensure estimates are realistic for the city provided.
 8. CTA: "Agar aap hamare verified interior designer se complete guidance chahte hain, to reply kare Yes or No."
 
@@ -26,8 +27,8 @@ If user says "Yes", say: "Thik hai sir, main niche Book Now button show kara rah
 If user says "No": Terminate conversation politely.
 
 Rules:
-- ONLY talk about budget.
-- If the user asks about space planning, design ideas, or expert advice, politely say: "In sabhi cheezon ke liye aap hamare interior designer ko book kar sakte hain, main sirf budget estimate mein aapki madad kar sakta hoon."
+- ONLY talk about budget. No other topics, advice, or information are to be discussed.
+- For ANY query other than budget estimation, politely and firmly say: "In sabhi cheezon ke liye aap hamare interior designer ko book kar sakte hain, main sirf budget estimate mein aapki madad kar sakta hoon."
 - Always maintain your consistent Indian accent and professional tone.
 - Use Hinglish where appropriate to sound natural and premium.`;
 
@@ -392,8 +393,8 @@ export default function InteriorJarvis() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-6 font-sans">
-      <div className="max-w-2xl w-full space-y-8 text-center">
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center px-4 py-8 md:p-6 font-sans">
+      <div className="w-full max-w-2xl space-y-8 text-center overflow-x-hidden">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -414,26 +415,6 @@ export default function InteriorJarvis() {
             Your Premium Indian Interior Assistant
           </p>
         </motion.div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-8">
-          {[
-            { icon: Layout, label: "Space Planning" },
-            { icon: IndianRupee, label: "Budgeting" },
-            { icon: Home, label: "Design Ideas" },
-            { icon: Info, label: "Expert Advice" }
-          ].map((item, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.1 }}
-              className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col items-center space-y-2 hover:bg-white/10 transition-colors"
-            >
-              <item.icon className="w-6 h-6 text-amber-400" />
-              <span className="text-xs font-medium text-gray-300">{item.label}</span>
-            </motion.div>
-          ))}
-        </div>
 
         <div className="relative h-48 flex items-center justify-center">
           <AnimatePresence mode="wait">
