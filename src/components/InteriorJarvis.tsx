@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 import { motion, AnimatePresence } from "motion/react";
-import { Mic, MicOff, Volume2, VolumeX, Home, Layout, IndianRupee, Info, ExternalLink, Sparkles } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX, Home, Layout, IndianRupee, Info, ExternalLink, Sparkles, Lamp, Armchair, Ruler, PaintBucket } from "lucide-react";
 import { floatTo16BitPCM, base64ToArrayBuffer } from "../lib/audio-utils";
 
 const SYSTEM_INSTRUCTION = `You are "Interior Jarvis", a premium Indian interior design budget assistant.
@@ -416,7 +416,13 @@ export default function InteriorJarvis() {
           </p>
         </motion.div>
 
-        <div className="relative h-48 flex items-center justify-center">
+        <div className="relative h-48 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center space-x-6 text-amber-500/50 mb-8 mt-[-2rem]">
+            <Lamp className="w-8 h-8" />
+            <Armchair className="w-8 h-8" />
+            <Ruler className="w-8 h-8" />
+            <PaintBucket className="w-8 h-8" />
+          </div>
           <AnimatePresence mode="wait">
             {!isActive ? (
               <div className="flex flex-col items-center space-y-4">
